@@ -21,10 +21,6 @@ struct connection_info {
 } conninfo;
 
 
-WiFiClient wifiClient;
-PubSubClient client(wifiClient);
-        
-
 // Base class for nodes, containing connection/AP mechanisms 
 class MoodyNode {
     private:
@@ -32,6 +28,8 @@ class MoodyNode {
         void connectToWifi();
 
     protected:
+        static WiFiClient wifiClient;
+        static PubSubClient client; 
         void connectToBroker();
         virtual void lastSetup() = 0; // implemented by heirs to add setup steps
         virtual void lastLoop() = 0; // implemented by heirs to add actions in the main loop
@@ -40,6 +38,9 @@ class MoodyNode {
         virtual void begin(int baudRate);
         virtual void loop();
 };
+
+WiFiClient MoodyNode::wifiClient = WiFiClient();
+PubSubClient MoodyNode::client = PubSubClient(wifiClient);
 
 void MoodyNode::activateAPMode() {
     APWebServer server;

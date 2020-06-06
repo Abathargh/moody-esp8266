@@ -6,3 +6,5 @@ Dependencies:
 - PubSubClient.h
 - ESPAsyncTCP.h
 - ESPAsyncWebServer.h
+
+Since There's a regex route used in the Actuator web server, ypu hav to enable a custom flag while compiling as written in the README for the ESPAsyncWebServer project. Instructions at the bootom of this page https://github.com/me-no-dev/ESPAsyncWebServer.
