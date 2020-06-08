@@ -16,14 +16,12 @@ const char login_html[] PROGMEM = R"===(
             .login {
                 margin: auto;
                 width: 330px;
-                height: 120px;
+                height: auto;
                 font-family: Courier New;
                 border-radius: 25px;
                 background-color: #ebeeff;
                 text-align: left;
-                padding-left: 2%;
-                padding-top: 2%;
-                padding-bottom: 3%;
+                padding: 1%;
                 text-decoration: none;
                 font-size: 15px;
                 border: 1px solid #af7bc7;
@@ -43,7 +41,8 @@ const char login_html[] PROGMEM = R"===(
                 xhttp.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
                 let ssid = document.getElementById("ssid").value;
                 let key = document.getElementById("key").value;
-                let params = "ssid="+ssid+"&key="+key;
+                let broker = document.getElementById("broker").value;
+                let params = "ssid="+ssid+"&key="+key+"&broker="+broker;
                 xhttp.send(params);
             }
         </script>
@@ -59,6 +58,10 @@ const char login_html[] PROGMEM = R"===(
                 <tr>
                     <td>KEY:</td>
                     <td><input type="password" name="key" id="key"/></td>
+                </tr>
+                <tr>
+                    <td>Broker Address:</td>
+                    <td><input type="text" name="broker" id="broker"/></td>
                 </tr>
                 <tr>
                     <td><input type="submit" value="Connect" onclick="save_credentials()" /></td>
@@ -77,14 +80,16 @@ const long APRand = random(100, 500);
 bool validPostConnect(AsyncWebServerRequest *request) {
     bool p1 = request->hasParam("ssid", true);
     bool p2 = request->hasParam("key", true);
-    if (!p1 || !p2) { return false; }
+    bool p3 = request->hasParam("broker", true);
+    if (!p1 || !p2 || !p3) { return false; }
     String ssid = request->getParam("ssid", true)->value();
     String key = request->getParam("key", true)->value();
-
+    String broker = request->getParam("broker", true)->value();
     unsigned int l1 = ssid.length();
     unsigned int l2 = key.length();
-    
-    return l1 > 0 && l1 < SSID_LENGTH && l2 > 0 && l2 < KEY_LENGTH;
+    unsigned int l3 = broker.length();
+
+    return l1 > 0 && l1 <= SSID_LENGTH && l2 > 0 && l2 <= KEY_LENGTH && l3 > 0 && l3 <= BROKER_ADDR_LENGTH;
 }
 AsyncWebServer createAPServer(int port) {
     char randSSID[12];
@@ -107,11 +112,15 @@ AsyncWebServer createAPServer(int port) {
         }
         request->send(200, "text/plain", "ok");
         delay(200);
+
         MoodyNode::conninfo.ok = CONN_OK;
         String ssid = request->getParam("ssid", true)->value();
         String key = request->getParam("key", true)->value();
+        String broker = request->getParam("broker", true)->value();
         strcpy(MoodyNode::conninfo.SSID, ssid.c_str());
         strcpy(MoodyNode::conninfo.KEY, key.c_str());
+        strcpy(MoodyNode::conninfo.BROKER_ADDR, broker.c_str());
+
         EEPROM.put(CONNINFO_ADDR, MoodyNode::conninfo);
         EEPROM.commit();
         ESP.reset();
@@ -133,7 +142,8 @@ void MoodyNode::activateAPMode() {
 void MoodyNode::connectToWifi() {
     Serial.println(conninfo.SSID);
     Serial.println(conninfo.KEY);
-    
+    Serial.println(conninfo.BROKER_ADDR);
+
     WiFi.mode(WIFI_STA);
     uint8_t attempt = 0;
 
@@ -152,7 +162,7 @@ void MoodyNode::connectToWifi() {
         Serial.println("The connection data may be wrong, re-activating AP mode");
         conninfo.ok = CONN_NOT_OK;
         EEPROM.put(CONNINFO_ADDR, conninfo);
-        EEPROM.commit();
+        EEPROM.commit();    
         ESP.reset();
     }
     Serial.print("Connected with ip: ");
@@ -162,10 +172,11 @@ void MoodyNode::connectToWifi() {
 }
 
 void MoodyNode::connectToBroker() {
-    while (!client.connected()) {
-        Serial.printf("Trying to connect to the broker @%s\n", MQTT_BROKER);
+    int attempt = 0;
+    while (!client.connected() && attempt < MAX_ATTEMPTS) {
+        Serial.printf("Trying to connect to the broker @%s - Attempt n.%d\n", conninfo.BROKER_ADDR, ++attempt);
         String clientId = "MoodyNode-" + String(random(100, 1000));
-        if (client.connect(clientId.c_str())) {
+        if (client.connect(conninfo.BROKER_ADDR)) {
             Serial.println("Connected!");
         } else {   
             Serial.print("Connection failed, rc=");
@@ -174,6 +185,14 @@ void MoodyNode::connectToBroker() {
             delay(5000);
         }
     }
+
+    if (attempt >= MAX_ATTEMPTS) {
+        Serial.println("The broker address may be wrong, re-activating AP mode");
+        conninfo.ok = CONN_NOT_OK;
+        EEPROM.put(CONNINFO_ADDR, conninfo);
+        EEPROM.commit();
+        ESP.reset();
+    }
 }
 
 void MoodyNode::begin(int baudRate) {
@@ -181,15 +200,12 @@ void MoodyNode::begin(int baudRate) {
     EEPROM.begin(EEPROM_SIZE_ACTUATOR);
     EEPROM.get(CONNINFO_ADDR, conninfo);
 
-    Serial.println(conninfo.ok);
-    Serial.println(conninfo.SSID);
-    Serial.println(conninfo.KEY);
 
     if(conninfo.ok != CONN_OK) {
         activateAPMode();
     } else {
         connectToWifi();
-        client.setServer(MQTT_BROKER, MQTT_PORT);
+        client.setServer(conninfo.BROKER_ADDR, MQTT_PORT);
         lastSetup();
     }
 }

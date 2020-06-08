@@ -25,7 +25,7 @@ A node, sensor or actuator, can be used in Aaccess Point mode or in normal mode.
 </p>
 
 <p style='text-align: justify;'>
-Once you reach the node, you can insert the SSID and the key of your local router. The node will save the information, reboot and try to connect to it; if it fails it will enter AP mode once again.
+Once you reach the node, you can insert the SSID and the key of your local router alongside the IP of the gateway node within your network. The node will save the information, reboot and try to connect to it; if it fails it will enter AP mode once again.
 </p>
 
 <p style='text-align: justify;'>

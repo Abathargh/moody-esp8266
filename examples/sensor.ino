@@ -8,7 +8,6 @@ String countService() {
 }
 
 void setup() {
-    delay(8000);
     sensor.registerService("count", countService);
     sensor.begin(9600);
 }

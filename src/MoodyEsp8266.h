@@ -12,15 +12,16 @@
 
 #define SSID_LENGTH 32
 #define KEY_LENGTH 64
+#define BROKER_ADDR_LENGTH 16
 #define MAX_ATTEMPTS 5
 
 #define AP_SSID "MoodyNode" 
 #define WEB_SERVER_PORT 80
 
 #define CONNINFO_ADDR 0
-#define MAPPINGS_ADDR 104
+#define MAPPINGS_ADDR 120
 #define EEPROM_SIZE_SENSOR 104
-#define EEPROM_SIZE_ACTUATOR 300 // 272 should be enough 
+#define EEPROM_SIZE_ACTUATOR 300  
 
 #define MSG_BUFFER_SIZE	(50)
 
@@ -45,6 +46,7 @@ struct connection_info {
     uint8_t ok;
     char SSID[SSID_LENGTH];
     char KEY[KEY_LENGTH];
+    char BROKER_ADDR[BROKER_ADDR_LENGTH];
 };
 
 struct mappings {
