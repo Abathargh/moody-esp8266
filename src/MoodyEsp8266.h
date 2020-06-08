@@ -7,10 +7,6 @@
 #define MAX_ACTION_SIZE 5
 #define MAX_ACTION_NUM 10
 
-#define SWITCH_MODE_TOPIC "moody/actuator/mode"
-#define SITUATION_TOPIC "moody/actuator/situation"
-#define PUBLISH_IP_TOPIC "moody/actserver"
-
 #define CONN_OK 1
 #define CONN_NOT_OK 0
 
@@ -26,8 +22,6 @@
 #define EEPROM_SIZE_SENSOR 104
 #define EEPROM_SIZE_ACTUATOR 300 // 272 should be enough 
 
-#define MQTT_PORT 1883
-#define MQTT_BROKER "192.168.1.191"
 #define MSG_BUFFER_SIZE	(50)
 
 #define MAX_SERVICES 3
@@ -104,11 +98,6 @@ class MoodySensor : public MoodyNode {
         void registerService(const char* topic, callback callback);
 };
 
-class Actuable {
-    public:
-        virtual void actuate(uint8_t) = 0;
-};
-
 class ActuatorWebServer {
     private:
         AsyncWebServer server;
@@ -120,22 +109,23 @@ class ActuatorWebServer {
 class MoodyActuator : public MoodyNode {
     private:
         static uint8_t actuatorMode; 
-        static Actuable *device;
         static ActuatorWebServer server;
         void lastSetup();
         void lastLoop() { return; };
+        static void (*actuate)(uint8_t);    
+        
     public:
+        static bool mappingChangedFlag;
         static mappings mapping;
         MoodyActuator() {}
-        void setActuable(Actuable *device);
         void loop();
+        static void setActuate(void (*actuate)(uint8_t));
         static void addMapping();
         static void removeMapping();
 };
 
 
 bool validPostRequest(AsyncWebServerRequest*, uint8_t*);
-bool validDeleteRequest(AsyncWebServerRequest*, uint8_t*);
 char* encodePostResponse(uint8_t*);
 
 #endif

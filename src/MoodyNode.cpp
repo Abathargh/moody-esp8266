@@ -1,5 +1,9 @@
 #include "MoodyEsp8266.h"
 
+#define MQTT_PORT 1883
+#define MQTT_BROKER "192.168.1.191"
+
+
 connection_info MoodyNode::conninfo;
 
 const char login_html[] PROGMEM = R"===(

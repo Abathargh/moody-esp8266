@@ -1,6 +1,12 @@
 #include "MoodyEsp8266.h"
 #include <ArduinoJson.h>
 
+#define SWITCH_MODE_TOPIC "moody/actuator/mode"
+#define SITUATION_TOPIC "moody/actuator/situation"
+#define PUBLISH_IP_TOPIC "moody/actserver"
+
+#define NO_MAPPING_CHANGE 0
+
 const uint8_t numPostArgs = 2;
 const char* postArgs[] {"situation", "action"};
 
@@ -28,48 +34,60 @@ bool validPostRequest(AsyncWebServerRequest *request, uint8_t *values) {
     return true;
 }
 
-// Validates delete requests, returning true if it is well posed and putting the correctly formatted 
-// situation id into situationId. The contents of this variable are well defined only if this returns true.
-// A false as return value implies a HTTP 422 error code.
-bool validDeleteRequest(AsyncWebServerRequest *request, uint8_t *situationId) {
-    long intValue;
-    char* checkInvalidNum;
-    
-    String situationIdStr = request->pathArg(0);
-    intValue = strtol(situationIdStr.c_str(), &checkInvalidNum, 10);
-    
-    if(*checkInvalidNum) { return false; }
-    if(intValue < 0 || intValue > 255) { return false; }
-    *situationId = intValue; 
-    return true;
-}
-
 
 mappings MoodyActuator::mapping;
+bool MoodyActuator::mappingChangedFlag = NO_MAPPING_CHANGE;
 ActuatorWebServer MoodyActuator::server = ActuatorWebServer{};
 uint8_t MoodyActuator::actuatorMode = ACTUATION_MODE;
+void (*MoodyActuator::actuate)(uint8_t) = 0;
 
-void MoodyActuator::setActuable(Actuable *device) {
-    MoodyActuator::device = device;
+void MoodyActuator::setActuate(void (*actuate)(uint8_t)) {
+    MoodyActuator::actuate = actuate;
 }
 
 void MoodyActuator::lastSetup() {
-    MoodyNode::client.setCallback(
+    //load mapping from eeprom
+    EEPROM.get(MAPPINGS_ADDR, mapping);
+    Serial.println("Loading mappings:");
+    for(int i = 0; i < mapping.size; i++) {
+        Serial.printf("%d: %d\n", mapping.situations[i], mapping.actions[i]);
+    }
+
+    client.setCallback(
         [](char* topic, uint8_t* payload, unsigned int length){
             if(strcmp(SITUATION_TOPIC, topic) == 0) {
-                // TODO atoi returns an int, this can only handle a byte
-                // and will overflow
-                uint8_t situation = atoi((const char*)payload);
+                char strPayload[length+1];
+                memcpy(strPayload, payload, length);
+                strPayload[length] = '\0';
+
+                char* checkInvalidSituation;
+                long intValue = strtol((const char*)strPayload, &checkInvalidSituation, 10);
+                if(*checkInvalidSituation) { Serial.print("Invalid situation: "); Serial.println(strPayload); return; }
+                if(intValue < 0 || intValue > 255) { Serial.print("Out of bounds situation "); Serial.println(strPayload); return; }
+                uint8_t situation = intValue;
+
+                Serial.print("Received situation ");
+                Serial.println(situation);
+
                 uint8_t i;
                 for(i = 0; i < mapping.size; i++) {
-                    if(mapping.situations[i] == situation)
-                        break;
+                    if(MoodyActuator::mapping.situations[i] == situation){ break; }
                 }
-                if(i != mapping.size) 
-                    MoodyActuator::device->actuate(mapping.actions[i]);
+                if(i < MoodyActuator::mapping.size) {
+                    Serial.printf("Preparing to actuate action #%d based on situation #%d\n",
+                        MoodyActuator::mapping.actions[i], MoodyActuator::mapping.situations[i]);
+                    actuate(MoodyActuator::mapping.actions[i]);
+                }
             } else if(strcmp(SWITCH_MODE_TOPIC, topic) == 0) {
-                const char* ip = WiFi.localIP().toString().c_str();
-                client.publish(PUBLISH_IP_TOPIC, ip);
+                if((char)payload[0] != '1') { Serial.println("Mode change: wrong syntax"); return; }
+                
+                char msg[MSG_BUFFER_SIZE];
+                String ip = WiFi.localIP().toString();
+                Serial.println("Act Server ip: " + ip);
+
+                snprintf(msg, MSG_BUFFER_SIZE, "%s", ip.c_str());
+                client.publish(PUBLISH_IP_TOPIC, msg);
+                delay(200);
                 client.disconnect();
 
                 server.begin();
@@ -79,12 +97,16 @@ void MoodyActuator::lastSetup() {
             }
         }
     );
+
+    client.subscribe(SWITCH_MODE_TOPIC);
+    client.subscribe(SITUATION_TOPIC);
 }
 
 void MoodyActuator::loop() {
     if(actuatorMode == ACTUATION_MODE){
         if(!client.connected()) {
             connectToBroker();
+            lastSetup();
         }
         client.loop();
     }
@@ -102,15 +124,22 @@ ActuatorWebServer::ActuatorWebServer() : server(WEB_SERVER_PORT) {
             request->send(422, "application/json", "{\"error\": \"wrong syntax\"}");
             return;
         }
+        // Check that the mapping with this situationId doesn't already exist
+        for(int i = 0; i < MoodyActuator::mapping.size; i++) {
+            if(MoodyActuator::mapping.situations[i] == values[0]) {
+                request->send(409, "application/json", "{\"error\": \"resource already exists\"}");
+                return;
+            }
+        }
         // Update in mem, flash only on server exit
         MoodyActuator::mapping.situations[MoodyActuator::mapping.size] = values[0];
         MoodyActuator::mapping.actions[MoodyActuator::mapping.size] = values[1];
         MoodyActuator::mapping.size++;
+        if(MoodyActuator::mappingChangedFlag == NO_MAPPING_CHANGE) { MoodyActuator::mappingChangedFlag = 1; }
 
-        int i;
         String resp;
         StaticJsonDocument<53> jsonResp;
-        for(i = 0; i < numPostArgs; i++) {
+        for(int i = 0; i < numPostArgs; i++) {
             jsonResp[postArgs[i]] = values[i];
         }
         serializeJson(jsonResp, resp);
@@ -131,32 +160,18 @@ ActuatorWebServer::ActuatorWebServer() : server(WEB_SERVER_PORT) {
         request->send(200, "application/json", resp);
     });
 
-    server.on("^\\/mapping\\/([0-9]{1,3})$", HTTP_DELETE, [](AsyncWebServerRequest *request) {
-        // check that id is long and in uint8_t bounds like in post before
-        // then find element in list (if present, otheerwise send error not found 404)
-        // then delete it and the corresponding action and shift every element to the left
-        // to cover the hole (don't if it was the only element)
-        uint8_t situationId;
-        if(!validDeleteRequest(request, &situationId)) {
-            request->send(422, "application/json", "{\"error\": \"wrong syntax\"}");
-            return;
-        }
-
-        int i;
-        for(i = 0; i < MoodyActuator::mapping.size; i++) { if(situationId == MoodyActuator::mapping.situations[i]) { break; } }
-        if(i >= MoodyActuator::mapping.size) { request->send(404, "application/json", "{\"error\": \"not found\"}"); }
-
-        for(;i < MoodyActuator::mapping.size - 1; i++) {
-            MoodyActuator::mapping.situations[i] = MoodyActuator::mapping.situations[i+1];
-            MoodyActuator::mapping.actions[i] = MoodyActuator::mapping.actions[i+1];
-        }
-        MoodyActuator::mapping.size--;
+    server.on("/mapping", HTTP_DELETE, [](AsyncWebServerRequest *request) {
+        MoodyActuator::mapping.size = 0;
+        if(MoodyActuator::mappingChangedFlag == NO_MAPPING_CHANGE) { MoodyActuator::mappingChangedFlag = 1; }
     });
 
     server.on("/end", HTTP_POST, [](AsyncWebServerRequest *request) {
         request->send(200, "application/json", "{\"action\": \"ending\"}");
-        EEPROM.put(MAPPINGS_ADDR, MoodyActuator::mapping);
-        EEPROM.commit();
-        ESP.reset();
+        delay(200);
+        if(MoodyActuator::mappingChangedFlag != NO_MAPPING_CHANGE) {
+            EEPROM.put(MAPPINGS_ADDR, MoodyActuator::mapping);
+            EEPROM.commit();
+            ESP.reset();
+        }
     });
 }
