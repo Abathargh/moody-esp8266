@@ -21,11 +21,11 @@ If you want to work with the latest stable release download the related zip file
 
 ## Functionalities 
 <p style='text-align: justify;'>
-A node, sensor or actuator, can be used in Aaccess Point mode or in normal mode. When used for the first time, the node starts in AP mode and is reachable under the 192.168.4.1 IP by connecting to its open WiFi network, that will have be named MoodyNode-xxx, with xxx being 3 random numbers.
+A node, sensor or actuator, can be used in Access Point mode or in normal mode. When used for the first time, the node starts in AP mode and is reachable under the 192.168.4.1 IP by connecting to its open WiFi network, that will have be named MoodyNode-xxx, with xxx being 3 random numbers.
 </p>
 
 <p style='text-align: justify;'>
-Once you reach the node, you can insert the SSID and the key of your local router alongside the IP of the gateway node within your network. The node will save the information, reboot and try to connect to it; if it fails it will enter AP mode once again.
+Once you reach the node, you can insert the SSID and the key of your local router alongside the IP of the   gateway node within your network. The node will save the information, reboot and try to connect to it; if it fails it will enter AP mode once again.
 </p>
 
 <p style='text-align: justify;'>
@@ -35,7 +35,7 @@ After connecting to the network, the node will start its normal activity: a sens
 ## writing a sensor sketch
 
 <p style='text-align: justify;'>
-Sensor sketches are based around the idea of a service, which is a way to obtain data from a physical (or virtual) sensor and expose it through a MQTT topic. You can have up to 3 services 
+Sensor sketches are based around the idea of a service, which is a way to obtain data from a physical (or virtual) sensor and expose it through an MQTT topic. You can have up to 3 services 
 within a MoodySensor; first, you create a function that acquires data from the sensor and returns it as a <i>String</i>. Then you register it to the MoodySensor object and you start it up:
 </p> 
 
@@ -72,7 +72,7 @@ The MoodyActuator class has almost the same API as MoodySensor, but this time yo
 </p>
 
 <p style='text-align: justify;'>
-When an MQTT message containing a situation is received from the gateway, the MoodyActuator objects scans a table of situation/action mappings and, if a mapping exists for the received situation, calls the function passed during the setup with the corresponding action.
+When an MQTT message containing a situation is received from the gateway, the MoodyActuator object scans a table of situation/action mappings and, if a mapping exists for the received situation, it calls the function passed during the setup with the corresponding action.
 An object of this class can have up to 10 mappings, that can be controlled through the server mode.
 </p>
 
