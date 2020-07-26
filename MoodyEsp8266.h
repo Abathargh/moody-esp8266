@@ -1,6 +1,7 @@
 #ifndef MOODYESP8266_H_
 #define MOODYESP8266_H_
 
+
 #define ACTUATION_MODE 0
 #define WEB_SERVER_MODE 1
 
@@ -15,15 +16,15 @@
 #define BROKER_ADDR_LENGTH 16
 #define MAX_ATTEMPTS 5
 
-#define AP_SSID "MoodyNode" 
+#define AP_SSID "MoodyNode"
 #define WEB_SERVER_PORT 80
 
 #define CONNINFO_ADDR 0
 #define MAPPINGS_ADDR 120
 #define EEPROM_SIZE_SENSOR 104
-#define EEPROM_SIZE_ACTUATOR 300  
+#define EEPROM_SIZE_ACTUATOR 300
 
-#define MSG_BUFFER_SIZE	(50)
+#define MSG_BUFFER_SIZE (50)
 
 #define MAX_SERVICES 3
 #define BASE_TOPIC "moody/service/"
@@ -31,14 +32,14 @@
 #define MAX_TOPIC_SIZE 30
 
 
+#include <EEPROM.h>
+#include <ESP8266WiFi.h>
+#include <ESPAsyncTCP.h>
+#include <ESPAsyncWebServer.h>
+#include <PubSubClient.h>
 #include <stdint.h>
 #include <stdlib.h>
 
-#include <EEPROM.h>
-#include <ESP8266WiFi.h>
-#include <PubSubClient.h>
-#include <ESPAsyncTCP.h>
-#include <ESPAsyncWebServer.h>
 
 // Stores and retrieves connection information in EEPROM
 // (emulated via flash memory)
@@ -52,7 +53,7 @@ struct connection_info {
 struct mappings {
     // iterate over situations, find index of received situation
     // access action and actuate using it.
-    uint8_t size; // how many mappings are currently present?
+    uint8_t size;  // how many mappings are currently present?
     uint8_t situations[MAX_ACTION_NUM];
     uint8_t actions[MAX_ACTION_NUM];
 };
@@ -60,7 +61,7 @@ struct mappings {
 bool validPostConnect(AsyncWebServerRequest*, const char**);
 AsyncWebServer createAPServer(int port);
 
-// Base class for nodes, containing connection/AP mechanisms 
+// Base class for nodes, containing connection/AP mechanisms
 class MoodyNode {
     private:
         static AsyncWebServer apServer;
@@ -70,21 +71,20 @@ class MoodyNode {
 
     protected:
         static WiFiClient wifiClient;
-        static PubSubClient client; 
+        static PubSubClient client;
         char msg[MSG_BUFFER_SIZE];
 
-        
-        MoodyNode() : apMode(false) {};
+        MoodyNode() : apMode(false){};
         void connectToBroker();
-        virtual void lastSetup() = 0; // implemented by heirs to add setup steps
-        virtual void lastLoop() = 0; // implemented by heirs to add actions in the main loop
+        virtual void lastSetup() = 0;  // implemented by heirs to add setup steps
+        virtual void
+        lastLoop() = 0;  // implemented by heirs to add actions in the main loop
 
     public:
         static connection_info conninfo;
         virtual void begin(int baudRate);
         virtual void loop();
 };
-
 
 using callback = String (*)();
 class MoodySensor : public MoodyNode {
@@ -103,19 +103,20 @@ class MoodySensor : public MoodyNode {
 class ActuatorWebServer {
     private:
         AsyncWebServer server;
+
     public:
         ActuatorWebServer();
-        void begin(){ server.begin(); };
+        void begin() { server.begin(); };
 };
 
 class MoodyActuator : public MoodyNode {
     private:
-        static uint8_t actuatorMode; 
+        static uint8_t actuatorMode;
         static ActuatorWebServer server;
         void lastSetup();
         void lastLoop() { return; };
-        static void (*actuate)(uint8_t);    
-        
+        static void (*actuate)(uint8_t);
+
     public:
         static bool mappingChangedFlag;
         static mappings mapping;
@@ -125,7 +126,6 @@ class MoodyActuator : public MoodyNode {
         static void addMapping();
         static void removeMapping();
 };
-
 
 bool validPostRequest(AsyncWebServerRequest*, uint8_t*);
 char* encodePostResponse(uint8_t*);

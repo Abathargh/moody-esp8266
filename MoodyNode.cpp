@@ -3,7 +3,6 @@
 #define MQTT_PORT 1883
 #define MQTT_BROKER "192.168.1.191"
 
-
 connection_info MoodyNode::conninfo;
 
 const char login_html[] PROGMEM = R"===(
@@ -77,11 +76,15 @@ const long APRand = random(100, 500);
 // Validates a post request coming from the /connect endpoint, putting the received ssid and key
 // into values and returning true if the content of the request was valid.
 // If false is returned, nothing can be said about the contents of values;
-bool validPostConnect(AsyncWebServerRequest *request) {
+bool validPostConnect(AsyncWebServerRequest *request)
+{
     bool p1 = request->hasParam("ssid", true);
     bool p2 = request->hasParam("key", true);
     bool p3 = request->hasParam("broker", true);
-    if (!p1 || !p2 || !p3) { return false; }
+    if (!p1 || !p2 || !p3)
+    {
+        return false;
+    }
     String ssid = request->getParam("ssid", true)->value();
     String key = request->getParam("key", true)->value();
     String broker = request->getParam("broker", true)->value();
@@ -91,7 +94,8 @@ bool validPostConnect(AsyncWebServerRequest *request) {
 
     return l1 > 0 && l1 <= SSID_LENGTH && l2 > 0 && l2 <= KEY_LENGTH && l3 > 0 && l3 <= BROKER_ADDR_LENGTH;
 }
-AsyncWebServer createAPServer(int port) {
+AsyncWebServer createAPServer(int port)
+{
     char randSSID[12];
     sprintf(randSSID, "%s%d", AP_SSID, APRand);
 
@@ -101,12 +105,13 @@ AsyncWebServer createAPServer(int port) {
     IPAddress IP = WiFi.softAPIP();
 
     AsyncWebServer server(port);
-    server.on("/", HTTP_GET, [](AsyncWebServerRequest *request){
+    server.on("/", HTTP_GET, [](AsyncWebServerRequest *request) {
         request->send_P(200, "text/html", login_html);
     });
 
     server.on("/connect", HTTP_POST, [](AsyncWebServerRequest *request) {
-        if (!validPostConnect(request)) {
+        if (!validPostConnect(request))
+        {
             request->send(422, "text/plain", "wrong syntax");
             return;
         }
@@ -128,18 +133,18 @@ AsyncWebServer createAPServer(int port) {
     return server;
 }
 
-
-
 WiFiClient MoodyNode::wifiClient = WiFiClient();
 PubSubClient MoodyNode::client = PubSubClient(wifiClient);
 AsyncWebServer MoodyNode::apServer = createAPServer(WEB_SERVER_PORT);
 
-void MoodyNode::activateAPMode() {
+void MoodyNode::activateAPMode()
+{
     apMode = true;
     apServer.begin();
 }
 
-void MoodyNode::connectToWifi() {
+void MoodyNode::connectToWifi()
+{
     Serial.println(conninfo.SSID);
     Serial.println(conninfo.KEY);
     Serial.println(conninfo.BROKER_ADDR);
@@ -147,22 +152,27 @@ void MoodyNode::connectToWifi() {
     WiFi.mode(WIFI_STA);
     uint8_t attempt = 0;
 
-    while(attempt < MAX_ATTEMPTS) {
+    while (attempt < MAX_ATTEMPTS)
+    {
         Serial.print("Connecting to the WiFi - Attempt n.");
         Serial.println(++attempt);
         WiFi.begin(conninfo.SSID, conninfo.KEY);
-        if(WiFi.waitForConnectResult() != WL_CONNECTED) {
+        if (WiFi.waitForConnectResult() != WL_CONNECTED)
+        {
             delay(200);
-        } else {
+        }
+        else
+        {
             break;
         }
     }
 
-    if (attempt >= MAX_ATTEMPTS) {
+    if (attempt >= MAX_ATTEMPTS)
+    {
         Serial.println("The connection data may be wrong, re-activating AP mode");
         conninfo.ok = CONN_NOT_OK;
         EEPROM.put(CONNINFO_ADDR, conninfo);
-        EEPROM.commit();    
+        EEPROM.commit();
         ESP.reset();
     }
     Serial.print("Connected with ip: ");
@@ -171,14 +181,19 @@ void MoodyNode::connectToWifi() {
     Serial.println(WiFi.macAddress());
 }
 
-void MoodyNode::connectToBroker() {
+void MoodyNode::connectToBroker()
+{
     int attempt = 0;
-    while (!client.connected() && attempt < MAX_ATTEMPTS) {
+    while (!client.connected() && attempt < MAX_ATTEMPTS)
+    {
         Serial.printf("Trying to connect to the broker @%s - Attempt n.%d\n", conninfo.BROKER_ADDR, ++attempt);
         String clientId = "MoodyNode-" + String(random(100, 1000));
-        if (client.connect(conninfo.BROKER_ADDR)) {
+        if (client.connect(conninfo.BROKER_ADDR))
+        {
             Serial.println("Connected!");
-        } else {   
+        }
+        else
+        {
             Serial.print("Connection failed, rc=");
             Serial.print(client.state());
             Serial.println(" trying again in 5 seconds.");
@@ -186,7 +201,8 @@ void MoodyNode::connectToBroker() {
         }
     }
 
-    if (attempt >= MAX_ATTEMPTS) {
+    if (attempt >= MAX_ATTEMPTS)
+    {
         Serial.println("The broker address may be wrong, re-activating AP mode");
         conninfo.ok = CONN_NOT_OK;
         EEPROM.put(CONNINFO_ADDR, conninfo);
@@ -195,25 +211,43 @@ void MoodyNode::connectToBroker() {
     }
 }
 
-void MoodyNode::begin(int baudRate) {
+void MoodyNode::begin(int baudRate)
+{
     Serial.begin(baudRate);
     EEPROM.begin(EEPROM_SIZE_ACTUATOR);
     EEPROM.get(CONNINFO_ADDR, conninfo);
 
-
-    if(conninfo.ok != CONN_OK) {
+    if (conninfo.ok != CONN_OK)
+    {
         activateAPMode();
-    } else {
+    }
+    else
+    {
         connectToWifi();
         client.setServer(conninfo.BROKER_ADDR, MQTT_PORT);
         lastSetup();
     }
 }
 
-void MoodyNode::loop() {
-    if(!apMode) {
+void MoodyNode::loop()
+{
+
+    if (conninfo.ok != CONN_OK)
+    {
+        activateAPMode();
+    }
+    else
+    {
+        connectToWifi();
+        client.setServer(conninfo.BROKER_ADDR, MQTT_PORT);
+        lastSetup();
+    }
+
+    if (!apMode)
+    {
         bool conn = client.connected();
-        if(!conn) {
+        if (!conn)
+        {
             connectToBroker();
             delay(1000);
         }
@@ -221,4 +255,3 @@ void MoodyNode::loop() {
         lastLoop();
     }
 }
-
