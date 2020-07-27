@@ -188,7 +188,7 @@ void MoodyNode::connectToBroker()
     {
         Serial.printf("Trying to connect to the broker @%s - Attempt n.%d\n", conninfo.BROKER_ADDR, ++attempt);
         String clientId = "MoodyNode-" + String(random(100, 1000));
-        if (client.connect(conninfo.BROKER_ADDR))
+        if (client.connect(clientId.c_str()))
         {
             Serial.println("Connected!");
         }
