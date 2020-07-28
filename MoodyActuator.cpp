@@ -169,11 +169,19 @@ ActuatorWebServer::ActuatorWebServer() : server(WEB_SERVER_PORT)
     // required -- (situation: uint8_t, action: uint8_t)
     server.on("/mapping", HTTP_POST, [](AsyncWebServerRequest *request) {
         uint8_t values[numPostArgs];
-        if (MoodyActuator::mapping.size == MAX_ACTION_NUM || !validPostRequest(request, values))
+        if (validPostRequest(request, values))
         {
             request->send(422, "application/json", "{\"error\": \"wrong syntax\"}");
             return;
         }
+
+        // Stops another mapping add when we reach the max number of mappings
+        if (MoodyActuator::mapping.size == MAX_ACTION_NUM)
+        {
+            request->send(422, "application/json", "{\"error\": \"can't have more mappings\"}");
+            return;
+        }
+        
         // Check that the mapping with this situationId doesn't already exist
         for (int i = 0; i < MoodyActuator::mapping.size; i++)
         {
