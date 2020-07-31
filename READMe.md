@@ -41,7 +41,7 @@ within a MoodySensor; first, you create a function that acquires data from the s
 
 ```c++
 #include <MoodyEsp8266.h>
-uint8_t n = 0;
+uint8_t c = 0;
 MoodySensor sensor;
 
 // Simple function that emulates data acquisition from a source
@@ -62,7 +62,7 @@ void loop() {
 ```
 <p style='text-align: justify;'>
 This way, the countService function will be periodically called, and its result will be 
-forwarded using the mody/service/<b>service-name</b> topic.
+forwarded using the moody/service/<b>service-name</b> topic.
 </p>
 
 ## writing an actuator sketch
