@@ -169,7 +169,7 @@ ActuatorWebServer::ActuatorWebServer() : server(WEB_SERVER_PORT)
     // required -- (situation: uint8_t, action: uint8_t)
     server.on("/mapping", HTTP_POST, [](AsyncWebServerRequest *request) {
         uint8_t values[numPostArgs];
-        if (validPostRequest(request, values))
+        if (!validPostRequest(request, values))
         {
             request->send(422, "application/json", "{\"error\": \"wrong syntax\"}");
             return;
