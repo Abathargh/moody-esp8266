@@ -18,6 +18,7 @@
 
 #define AP_SSID "MoodyNode"
 #define WEB_SERVER_PORT 80
+#define MQTT_PORT 1883
 
 #define CONNINFO_ADDR 0
 #define MAPPINGS_ADDR 120
@@ -65,17 +66,17 @@ AsyncWebServer createAPServer(int port);
 class MoodyNode {
     private:
         static AsyncWebServer apServer;
-        bool apMode;
-        void activateAPMode();
-        void connectToWifi();
 
     protected:
+        bool apMode;
         static WiFiClient wifiClient;
         static PubSubClient client;
         char msg[MSG_BUFFER_SIZE];
 
         MoodyNode() : apMode(false){};
-        void connectToBroker();
+        void activateAPMode();
+        bool connectToWifi();
+        bool connectToBroker();
         virtual void lastSetup() = 0;  // implemented by heirs to add setup steps
         virtual void
         lastLoop() = 0;  // implemented by heirs to add actions in the main loop

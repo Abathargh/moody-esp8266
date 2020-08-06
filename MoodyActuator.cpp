@@ -144,13 +144,26 @@ void MoodyActuator::lastSetup()
 
 void MoodyActuator::loop()
 {
-    if (actuatorMode == ACTUATION_MODE)
-    {
-        if (!client.connected())
-        {
-            connectToBroker();
-            lastSetup();
+    if(!apMode && actuatorMode == ACTUATION_MODE) {
+        bool wifiConn = WiFi.isConnected();
+        if (!wifiConn) {
+            bool okWifi = connectToWifi();
+            if(!okWifi) {
+                activateAPMode();
+                return;
+            }
         }
+
+        bool mqttConn = client.connected();
+        if(!mqttConn) {       
+            client.setServer(conninfo.BROKER_ADDR, MQTT_PORT);
+            bool okMqtt = connectToBroker();
+            if(!okMqtt) {
+                activateAPMode();
+                return;
+            }
+        }
+
         client.loop();
     }
 }
