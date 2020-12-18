@@ -18,7 +18,7 @@
 
 #define AP_SSID "MoodyNode"
 #define WEB_SERVER_PORT 80
-#define MQTT_PORT 1883
+#define MQTT_PORT 8883
 
 #define CONNINFO_ADDR 0
 #define MAPPINGS_ADDR 120
@@ -66,10 +66,11 @@ AsyncWebServer createAPServer(int port);
 class MoodyNode {
     private:
         static AsyncWebServer apServer;
+        static X509List *caCertX509;
 
     protected:
         bool apMode;
-        static WiFiClient wifiClient;
+        static WiFiClientSecure wifiClient;
         static PubSubClient client;
         char msg[MSG_BUFFER_SIZE];
 
@@ -83,6 +84,7 @@ class MoodyNode {
 
     public:
         static connection_info conninfo;
+        static void setCert(const char* caCert, const uint8_t* brokerFingerprint);
         virtual void begin(int baudRate);
         virtual void loop();
 };

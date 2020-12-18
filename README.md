@@ -1,10 +1,20 @@
-# moody-esp8266
+# *moody-esp8266*
 
 <p style='text-align: justify;'>
 An implementation of the Moody Architecture for the end-devices (sensors/actuators) using the ESP8266-01 board. It's based on the ESP running with the NodeMCU firmware, following the instructions contained in this antimait article (in italian) http://antima.it/costruisci-la-tua-rete-domotica-con-esp8266-e-raspberry-pi-caricare-il-firmware-nodemcu/.
 </p>
 
-Dependencies:
+## Contents
+- [Dependencies](#ependencies)
+- [Installation (Arduino IDE)](#installation-(arduino-ide))
+- [Functionalities](#functionalities)
+- [Sketches](#sketches)
+    - [Adding the broker TLS certificates](#adding-the-broker-tls-certificates)
+    - [Writing a sensor sketch](#writing-a-sensor-sketch)
+    - [Writing an actuator sketch](#writing-an-actuator-sketch)
+    
+## Dependencies:
+
 - ESP8266WiFi.h
 - PubSubClient.h
 - ESPAsyncTCP.h
@@ -32,7 +42,28 @@ Once you reach the node, you can insert the SSID and the key of your local route
 After connecting to the network, the node will start its normal activity: a sensor will read data and forward it to the moody broker. An actuator can be used in two different modes: actuation, where it receives data to control a device, or server mode. This last one is used so that its information about its mappings can be queried or modified.
 </p>
 
-## writing a sensor sketch
+## Sketches
+
+### Adding the broker TLS certificates
+
+Since version 0.2 MoodyEsp8266, and the Moody project in general, requires TLS for its MQTT communications. In order to set it up on the ESP8266, you need to pick the ca.crt generated following the instructions included in the main [Moody repository](https://github.com/Abathargh/moody-go#configuration-and-certificates-setup).
+You also need the server fingerprint, obtainable by opening a terminal in the moody directory and running:
+
+```bash
+openssl x509 -in  broker/server.crt -sha1 -noout -fingerprint
+```
+
+This fingerprint must be passed as an array of **uint8_t**, in hexadecimal notation, like this:
+
+```c
+openssl output example: 
+AA:BC:0A:A9:33:23:0F:4E:0A:F6:D6:7E:C0:DA:BE:4B:F1:A4:B3:94 
+
+brokerFingerprint:
+uint8_t brokerFingerprint[] = {0xAA, 0xBC, 0x0A, 0xA9, 0x33, 0x23, 0x0F, 0x4E, 0x0A, 0xF6, 0xD6, 0x7E, 0xC0, 0xDA, 0xBE, 0x4B, 0xF1, 0xA4, 0xB3, 0x94}
+```
+
+### Writing a sensor sketch
 
 <p style='text-align: justify;'>
 Sensor sketches are based around the idea of a service, which is a way to obtain data from a physical (or virtual) sensor and expose it through an MQTT topic. You can have up to 3 services 
@@ -41,6 +72,15 @@ within a MoodySensor; first, you create a function that acquires data from the s
 
 ```c++
 #include <MoodyEsp8266.h>
+
+const char caCert[] PROGMEM = R"EOF(
+-----BEGIN CERTIFICATE-----
+your certificate here
+-----END CERTIFICATE-----
+)EOF";
+
+const uint8_t brokerFingerprint[] = {};
+
 uint8_t c = 0;
 MoodySensor sensor;
 
@@ -52,6 +92,7 @@ String countService() {
 void setup() {
     // Pass the function to the registerService function alongside 
     // the topic related to the service 
+    sensor.setCert(caCert, brokerFingerprint);
     sensor.register("count", countService);
     ...
 }
@@ -65,7 +106,7 @@ This way, the countService function will be periodically called, and its result 
 forwarded using the moody/service/<b>service-name</b> topic.
 </p>
 
-## writing an actuator sketch
+### Writing an actuator sketch
 
 <p style='text-align: justify;'>
 The MoodyActuator class has almost the same API as MoodySensor, but this time you have to pass to it a function that controls the device during the setup stage. This function must accept an unsigned 8 bit number that corresponds to a single action that can be performed.
@@ -82,6 +123,15 @@ The following is an example of how to setup the actuator with a simple function 
 
 ```c++
 #include <MoodyEsp8266.h>
+
+const char caCert[] PROGMEM = R"EOF(
+-----BEGIN CERTIFICATE-----
+your certificate here
+-----END CERTIFICATE-----
+)EOF";
+
+const uint8_t brokerFingerprint[] = {};
+
 void actuate(uint8_t action) {
     switch(action) {
         case 0:
@@ -96,6 +146,7 @@ void actuate(uint8_t action) {
 }
 
 void setup() {
+    sensor.setCert(caCert, brokerFingerprint);
     MoodyActuator::setActuate(actuate);
     ...
 }

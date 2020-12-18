@@ -78,8 +78,7 @@ bool validPostConnect(AsyncWebServerRequest *request)
     bool p1 = request->hasParam("ssid", true);
     bool p2 = request->hasParam("key", true);
     bool p3 = request->hasParam("broker", true);
-    if (!p1 || !p2 || !p3)
-    {
+    if (!p1 || !p2 || !p3){
         return false;
     }
     String ssid = request->getParam("ssid", true)->value();
@@ -91,6 +90,7 @@ bool validPostConnect(AsyncWebServerRequest *request)
 
     return l1 > 0 && l1 <= SSID_LENGTH && l2 > 0 && l2 <= KEY_LENGTH && l3 > 0 && l3 <= BROKER_ADDR_LENGTH;
 }
+
 AsyncWebServer createAPServer(int port) {
     IPAddress IP = WiFi.softAPIP();
 
@@ -100,13 +100,12 @@ AsyncWebServer createAPServer(int port) {
     });
 
     server.on("/connect", HTTP_POST, [](AsyncWebServerRequest *request) {
-        if (!validPostConnect(request))
-        {
+        if (!validPostConnect(request)) {
             request->send(422, "text/plain", "wrong syntax");
             return;
         }
         request->send(200, "text/plain", "ok");
-        delay(200);
+        delay(1000);
 
         MoodyNode::conninfo.ok = CONN_OK;
         String ssid = request->getParam("ssid", true)->value();
@@ -123,9 +122,19 @@ AsyncWebServer createAPServer(int port) {
     return server;
 }
 
-WiFiClient MoodyNode::wifiClient = WiFiClient();
+WiFiClientSecure MoodyNode::wifiClient = WiFiClientSecure();
 PubSubClient MoodyNode::client = PubSubClient(wifiClient);
-AsyncWebServer MoodyNode::apServer = createAPServer(WEB_SERVER_PORT);;
+AsyncWebServer MoodyNode::apServer = createAPServer(WEB_SERVER_PORT);
+X509List* MoodyNode::caCertX509 = nullptr; 
+
+void MoodyNode::setCert(const char* caCert, const uint8_t* brokerFingerprint) {
+    if(caCertX509 == nullptr) {
+        caCertX509 = new X509List(caCert);
+    }
+    wifiClient.setTrustAnchors(caCertX509);
+    wifiClient.allowSelfSignedCerts();
+    wifiClient.setFingerprint(brokerFingerprint);
+}
 
 void MoodyNode::activateAPMode() {
     char randSSID[12];
@@ -141,15 +150,16 @@ bool MoodyNode::connectToWifi() {
     WiFi.mode(WIFI_STA);
     uint8_t attempt = 0;
 
-    while (attempt < MAX_ATTEMPTS)
-    {
+    while (attempt < MAX_ATTEMPTS) {
         Serial.print("Connecting to the WiFi - Attempt n.");
+        delay(1000);
         Serial.println(++attempt);
+        delay(1000);
         WiFi.begin(conninfo.SSID, conninfo.KEY);
         if (WiFi.waitForConnectResult() == WL_CONNECTED) {
             return true;
         }
-        delay(200);
+        delay(1000);
     }
     return false;
 }
@@ -197,8 +207,7 @@ void MoodyNode::begin(int baudRate) {
     lastSetup();
 }
 
-void MoodyNode::loop()
-{
+void MoodyNode::loop() {
     if (!apMode) {
         bool wifiConn = WiFi.isConnected();
         if (!wifiConn) {
