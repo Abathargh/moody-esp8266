@@ -1,12 +1,12 @@
 # *moody-esp8266*
 
 <p style='text-align: justify;'>
-An implementation of the Moody Architecture for the end-devices (sensors/actuators) using the ESP8266-01 board. It's based on the ESP running with the NodeMCU firmware, following the instructions contained in this antimait article (in italian) http://antima.it/costruisci-la-tua-rete-domotica-con-esp8266-e-raspberry-pi-caricare-il-firmware-nodemcu/.
+An implementation of the Moody Architecture for the end-devices (sensors/actuators) using the ESP8266-01 board.
 </p>
 
 ## Contents
-- [Dependencies](#ependencies)
-- [Installation (Arduino IDE)](#installation-(arduino-ide))
+- [Dependencies](#dependencies)
+- [Installation (Arduino IDE)](#installation-arduino-ide)
 - [Functionalities](#functionalities)
 - [Sketches](#sketches)
     - [Adding the broker TLS certificates](#adding-the-broker-tls-certificates)
