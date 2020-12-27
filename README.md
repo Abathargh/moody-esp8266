@@ -1,14 +1,18 @@
 # *moody-esp8266*
 
 <p style='text-align: justify;'>
+<<<<<<< HEAD
 An implementation of the Moody Architecture for the end-devices (sensors/actuators) using the ESP8266-01 board. It's based on the ESP being programmed through the Arduino IDE Board Manager for ESP8266.
 
 **EXPERIMENTAL** ESP32 support is implemented but not fully tested yet.
+=======
+An implementation of the Moody Architecture for the end-devices (sensors/actuators) using the ESP8266-01 board.
+>>>>>>> 9fa2675431699fcc11725309949d3bafe451d2b8
 </p>
 
 ## Contents
-- [Dependencies](#ependencies)
-- [Installation (Arduino IDE)](#installation-(arduino-ide))
+- [Dependencies](#dependencies)
+- [Installation (Arduino IDE)](#installation-arduino-ide)
 - [Functionalities](#functionalities)
 - [Sketches](#sketches)
     - [Adding the broker TLS certificates](#adding-the-broker-tls-certificates)
