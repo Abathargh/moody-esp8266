@@ -34,8 +34,15 @@
 
 
 #include <EEPROM.h>
+
+#if defined(ESP8266) 
 #include <ESP8266WiFi.h>
 #include <ESPAsyncTCP.h>
+#else
+#include <WiFiClientSecure.h>
+#include <AsyncTCP.h>
+#endif
+
 #include <ESPAsyncWebServer.h>
 #include <PubSubClient.h>
 #include <stdint.h>
@@ -66,11 +73,13 @@ AsyncWebServer createAPServer(int port);
 class MoodyNode {
     private:
         static AsyncWebServer apServer;
+#if defined(ESP8266)
         static X509List *caCertX509;
-
+#endif
     protected:
         bool apMode;
         static WiFiClientSecure wifiClient;
+
         static PubSubClient client;
         char msg[MSG_BUFFER_SIZE];
 

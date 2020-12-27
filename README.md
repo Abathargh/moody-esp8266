@@ -1,7 +1,9 @@
 # *moody-esp8266*
 
 <p style='text-align: justify;'>
-An implementation of the Moody Architecture for the end-devices (sensors/actuators) using the ESP8266-01 board. It's based on the ESP running with the NodeMCU firmware, following the instructions contained in this antimait article (in italian) http://antima.it/costruisci-la-tua-rete-domotica-con-esp8266-e-raspberry-pi-caricare-il-firmware-nodemcu/.
+An implementation of the Moody Architecture for the end-devices (sensors/actuators) using the ESP8266-01 board. It's based on the ESP being programmed through the Arduino IDE Board Manager for ESP8266.
+
+**EXPERIMENTAL** ESP32 support is implemented but not fully tested yet.
 </p>
 
 ## Contents
@@ -20,6 +22,11 @@ An implementation of the Moody Architecture for the end-devices (sensors/actuato
 - ESPAsyncTCP.h
 - ESPAsyncWebServer.h
 - ArduinoJson.h
+
+When using this library on an ESP32, the following dependencies substitute ESP826WiFi.h and ESPAsyncTCP.h respectively:
+
+- WiFiClientSecure.h
+- AsyncTCP.h
 
 ## Installation (Arduino IDE)
 

@@ -255,6 +255,10 @@ ActuatorWebServer::ActuatorWebServer() : server(WEB_SERVER_PORT)
             EEPROM.put(MAPPINGS_ADDR, MoodyActuator::mapping);
             EEPROM.commit();
         }
+#if defined(ESP8266)
         ESP.reset();
+#else
+        ESP.restart();
+#endif
     });
 }

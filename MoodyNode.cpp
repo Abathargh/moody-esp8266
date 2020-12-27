@@ -117,7 +117,11 @@ AsyncWebServer createAPServer(int port) {
 
         EEPROM.put(CONNINFO_ADDR, MoodyNode::conninfo);
         EEPROM.commit();
+#if defined(ESP8266)
         ESP.reset();
+#else
+        ESP.restart();
+#endif
     });
     return server;
 }
@@ -125,20 +129,27 @@ AsyncWebServer createAPServer(int port) {
 WiFiClientSecure MoodyNode::wifiClient = WiFiClientSecure();
 PubSubClient MoodyNode::client = PubSubClient(wifiClient);
 AsyncWebServer MoodyNode::apServer = createAPServer(WEB_SERVER_PORT);
+
+#if defined(ESP8266)
 X509List* MoodyNode::caCertX509 = nullptr; 
+#endif
 
 void MoodyNode::setCert(const char* caCert, const uint8_t* brokerFingerprint) {
+#if defined(ESP8266)
     if(caCertX509 == nullptr) {
         caCertX509 = new X509List(caCert);
     }
     wifiClient.setTrustAnchors(caCertX509);
     wifiClient.allowSelfSignedCerts();
     wifiClient.setFingerprint(brokerFingerprint);
+#else
+    wifiClient.setCACert(caCert);
+#endif
 }
 
 void MoodyNode::activateAPMode() {
-    char randSSID[12];
-    sprintf(randSSID, "%s%d", AP_SSID, APRand);
+    char randSSID[13];
+    sprintf(randSSID, "%s%d\0", AP_SSID, APRand);
     // Init ESP WiFi as AP
     WiFi.mode(WIFI_AP);
     WiFi.softAP(randSSID);
@@ -152,7 +163,6 @@ bool MoodyNode::connectToWifi() {
 
     while (attempt < MAX_ATTEMPTS) {
         Serial.print("Connecting to the WiFi - Attempt n.");
-        delay(1000);
         Serial.println(++attempt);
         delay(1000);
         WiFi.begin(conninfo.SSID, conninfo.KEY);
