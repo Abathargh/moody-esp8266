@@ -24,9 +24,9 @@ void actuate(uint8_t action) {
 }
 
 void setup() {
-    sensor.setCert(caCert, brokerFingerprint);
+    actuator.setCert(caCert, brokerFingerprint);
     MoodyActuator::setActuate(actuate);
-    actuator.begin(9600);
+    actuator.begin();
 }
 
 void loop() {

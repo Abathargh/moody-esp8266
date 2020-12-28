@@ -4,7 +4,6 @@
 An implementation of the Moody Architecture for the end-devices (sensors/actuators) using the ESP8266-01 board. It's based on the ESP being programmed through the Arduino IDE Board Manager for ESP8266.
 
 **EXPERIMENTAL** ESP32 support is implemented but not fully tested yet.
-An implementation of the Moody Architecture for the end-devices (sensors/actuators) using the ESP8266-01 board.
 </p>
 
 ## Contents

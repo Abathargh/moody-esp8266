@@ -31,8 +31,9 @@ void setup() {
     sensor.setCert(caCert, brokerFingerprint);
     sensor.registerService("temperature", temperatureService);
     sensor.registerService("humidity", humidityService);
-    sensor.begin(115200);
+    sensor.begin();
 }
 
 void loop() {
- 
+    sensor.loop();
+}

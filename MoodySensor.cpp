@@ -13,6 +13,11 @@ void MoodySensor::registerService(const char *topic, callback callback)
     }
 }
 
+void MoodySensor::setLoopPeriod(uint32_t period_ms)
+{
+    loopPeriod = period_ms;
+}
+
 void MoodySensor::lastSetup()
 {
     return;
@@ -25,9 +30,8 @@ void MoodySensor::lastLoop()
     {
         String data = callbacks[i]();
         snprintf(msg, MSG_BUFFER_SIZE, "%s", data.c_str());
-        Serial.printf("serviceTopics: %s\n", serviceTopics[i]);
-        Serial.printf("payload: %s\n", msg);
+        DEBUG_MSG("serviceTopics:\t%s\npayload:\t%s\n", serviceTopics[i], msg);
         bool ok = client.publish(serviceTopics[i], msg);
-        delay(2000);
+        delay(loopPeriod);
     }
 }

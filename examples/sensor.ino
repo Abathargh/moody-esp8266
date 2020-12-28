@@ -18,7 +18,7 @@ String countService() {
 void setup() {
     sensor.setCert(caCert, brokerFingerprint);
     sensor.registerService("count", countService);
-    sensor.begin(9600);
+    sensor.begin();
 }
 
 void loop() {

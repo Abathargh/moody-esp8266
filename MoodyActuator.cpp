@@ -10,7 +10,6 @@
 // Comment to disable CORS
 #define CORS
 
-
 const uint8_t numPostArgs = 2;
 const char *postArgs[]{"situation", "action"};
 
@@ -63,39 +62,34 @@ void MoodyActuator::lastSetup()
 {
     //load mapping from eeprom
     EEPROM.get(MAPPINGS_ADDR, mapping);
-    Serial.printf("Mappings size: %d\n", mapping.size);
-    Serial.println("Loading mappings:");
-    for (int i = 0; i < mapping.size; i++)
-    {
-        Serial.printf("%d: %d\n", mapping.situations[i], mapping.actions[i]);
-    }
-    
+    DEBUG_MSG("Mappings size: %d:", mapping.size);
+
     client.setCallback(
         [](char *topic, uint8_t *payload, unsigned int length) {
+            DEBUG_MSG("%s - %s - %d\n", topic, payload, length);
             if (strcmp(SITUATION_TOPIC, topic) == 0)
             {
                 char strPayload[length + 1];
                 memcpy(strPayload, payload, length);
                 strPayload[length] = '\0';
+                DEBUG_MSG("Payload: %s\n", strPayload);
 
                 char *checkInvalidSituation;
-                long intValue = strtol((const char *)strPayload, &checkInvalidSituation, 10);
-                if (*checkInvalidSituation)
+                long intValue = strtol(strPayload, &checkInvalidSituation, 10);
+                if (*checkInvalidSituation != '\0')
                 {
-                    Serial.print("Invalid situation: ");
-                    Serial.println(strPayload);
+                    
+                    DEBUG_MSG("Invalid situation: %s\n", strPayload);
                     return;
                 }
                 if (intValue < 0 || intValue > 255)
                 {
-                    Serial.print("Out of bounds situation ");
-                    Serial.println(strPayload);
+                    DEBUG_MSG("Out of bounds situation: %s\n", strPayload);
                     return;
                 }
                 uint8_t situation = intValue;
 
-                Serial.print("Received situation ");
-                Serial.println(situation);
+                DEBUG_MSG("Received situation %d\n", situation);
 
                 uint8_t i;
                 for (i = 0; i < mapping.size; i++)
@@ -107,25 +101,29 @@ void MoodyActuator::lastSetup()
                 }
                 if (i < MoodyActuator::mapping.size)
                 {
-                    Serial.printf("Preparing to actuate action #%d based on situation #%d\n",
-                                  MoodyActuator::mapping.actions[i], MoodyActuator::mapping.situations[i]);
+                    DEBUG_MSG("Preparing to actuate action #%d based on situation #%d\n",
+                              MoodyActuator::mapping.actions[i], MoodyActuator::mapping.situations[i]);
                     actuate(MoodyActuator::mapping.actions[i]);
+                } else {
+                    DEBUG_MSG("A situation was received that has no mapping: %d", situation);
                 }
             }
             else if (strcmp(SWITCH_MODE_TOPIC, topic) == 0)
             {
                 if ((char)payload[0] != '1')
                 {
-                    Serial.println("Mode change: wrong syntax");
+                    DEBUG_MSG("Mode change: wrong syntax\n");
                     return;
                 }
 
                 char msg[MSG_BUFFER_SIZE];
-                String ip = WiFi.localIP().toString();
-                Serial.println("Act Server ip: " + ip);
+                const char* ip = WiFi.localIP().toString().c_str();
+                DEBUG_MSG("Act Server ip: %s\n", ip);
 
-                snprintf(msg, MSG_BUFFER_SIZE, "%s", ip.c_str());
+                snprintf(msg, MSG_BUFFER_SIZE, "%s", ip);
                 client.publish(PUBLISH_IP_TOPIC, msg);
+
+                // Let's wait a bit before disconnecting, so that the message is published
                 delay(200);
                 client.disconnect();
 
@@ -144,21 +142,26 @@ void MoodyActuator::lastSetup()
 
 void MoodyActuator::loop()
 {
-    if(!apMode && actuatorMode == ACTUATION_MODE) {
+    if (!apMode && actuatorMode == ACTUATION_MODE)
+    {
         bool wifiConn = WiFi.isConnected();
-        if (!wifiConn) {
+        if (!wifiConn)
+        {
             bool okWifi = connectToWifi();
-            if(!okWifi) {
+            if (!okWifi)
+            {
                 activateAPMode();
                 return;
             }
         }
 
         bool mqttConn = client.connected();
-        if(!mqttConn) {       
+        if (!mqttConn)
+        {
             client.setServer(conninfo.BROKER_ADDR, MQTT_PORT);
             bool okMqtt = connectToBroker();
-            if(!okMqtt) {
+            if (!okMqtt)
+            {
                 activateAPMode();
                 return;
             }
@@ -172,12 +175,12 @@ void MoodyActuator::loop()
 // mappings can be changed/removed.
 ActuatorWebServer::ActuatorWebServer() : server(WEB_SERVER_PORT)
 {
-    // Allows CORS
-    #ifdef CORS
+// Allows CORS
+#ifdef CORS
     DefaultHeaders::Instance().addHeader("Access-Control-Allow-Origin", "*");
     DefaultHeaders::Instance().addHeader("Access-Control-Allow-Headers", "content-type");
-    #endif
-    
+#endif
+
     // /mapping [POST]
     // required -- (situation: uint8_t, action: uint8_t)
     server.on("/mapping", HTTP_POST, [](AsyncWebServerRequest *request) {
@@ -194,7 +197,7 @@ ActuatorWebServer::ActuatorWebServer() : server(WEB_SERVER_PORT)
             request->send(422, "application/json", "{\"error\": \"can't have more mappings\"}");
             return;
         }
-        
+
         // Check that the mapping with this situationId doesn't already exist
         for (int i = 0; i < MoodyActuator::mapping.size; i++)
         {
