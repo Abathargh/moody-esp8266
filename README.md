@@ -4,13 +4,17 @@
 An implementation of the Moody Architecture for the end-devices (sensors/actuators) using the ESP8266-01 board. It's based on the ESP being programmed through the Arduino IDE Board Manager for ESP8266.
 
 **EXPERIMENTAL** ESP32 support is implemented but not fully tested yet.
+
+**TODO** Add deep sleep capabilities, working on how to implement it via hw mod on pin
 </p>
 
 ## Contents
-- [Dependencies](#dependencies)
-- [Installation (Arduino IDE)](#installation-arduino-ide)
-- [Functionalities](#functionalities)
-- [Sketches](#sketches)
+- [*moody-esp8266*](#moody-esp8266)
+  - [Contents](#contents)
+  - [Dependencies:](#dependencies)
+  - [Installation (Arduino IDE)](#installation-arduino-ide)
+  - [Functionalities](#functionalities)
+  - [Sketches](#sketches)
     - [Adding the broker TLS certificates](#adding-the-broker-tls-certificates)
     - [Writing a sensor sketch](#writing-a-sensor-sketch)
     - [Writing an actuator sketch](#writing-an-actuator-sketch)
@@ -34,6 +38,10 @@ When using this library on an ESP32, the following dependencies substitute ESP82
 Clone this repository and zip it, or click download zip from the upper right corner of this github page if you want to have a release with the latest features.</p>
 <p style='text-align: justify;'>
 If you want to work with the latest stable release download the related zip file from https://github.com/Abathargh/moody-esp8266/releases, then add it to your environment by clicking <b>Sketch -> Include Library -> Add -> .ZIP Library...</b> and selecting the zip file you just downloaded.</p>
+
+<p style="text-align: justify;">
+You can also just clone the repo into your Arduino/libraries directory.
+</p>
 
 
 ## Functionalities 
