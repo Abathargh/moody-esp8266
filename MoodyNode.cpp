@@ -194,7 +194,7 @@ bool MoodyNode::connectToBroker()
             return true;
         }
         DEBUG_MSG("Connection failed, rc=%d trying again in 5 seconds\n", client.state());
-        delay(5000);
+        delay(2000);
     }
 
     return false;
@@ -254,7 +254,7 @@ void MoodyNode::loop()
             }
         }
 
-        client.loop();
         lastLoop();
+        client.loop();
     }
 }
