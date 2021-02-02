@@ -83,7 +83,7 @@ class MoodyNode
 private:
     static AsyncWebServer apServer;
 #if defined(ESP8266)
-    static X509List *caCertX509;
+    X509List caCertX509;
 #endif
 protected:
     bool apMode;
@@ -102,7 +102,7 @@ protected:
 
 public:
     static connection_info conninfo;
-    static void setCert(const char *caCert, const uint8_t *brokerFingerprint);
+    void setCert(const char *caCert, const uint8_t *brokerFingerprint);
     virtual void begin();
     virtual void loop();
 };

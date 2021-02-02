@@ -133,18 +133,11 @@ WiFiClientSecure MoodyNode::wifiClient = WiFiClientSecure();
 PubSubClient MoodyNode::client = PubSubClient(wifiClient);
 AsyncWebServer MoodyNode::apServer = createAPServer(WEB_SERVER_PORT);
 
-#if defined(ESP8266)
-X509List *MoodyNode::caCertX509 = nullptr;
-#endif
-
 void MoodyNode::setCert(const char *caCert, const uint8_t *brokerFingerprint)
 {
 #if defined(ESP8266)
-    if (caCertX509 == nullptr)
-    {
-        caCertX509 = new X509List(caCert);
-    }
-    wifiClient.setTrustAnchors(caCertX509);
+    caCertX509 = X509List(caCert);
+    wifiClient.setTrustAnchors(&caCertX509);
     wifiClient.allowSelfSignedCerts();
     wifiClient.setFingerprint(brokerFingerprint);
 #else
