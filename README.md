@@ -9,12 +9,11 @@ An implementation of the Moody Architecture for the end-devices (sensors/actuato
 </p>
 
 ## Contents
-- [*moody-esp8266*](#moody-esp8266)
-  - [Contents](#contents)
-  - [Dependencies:](#dependencies)
-  - [Installation (Arduino IDE)](#installation-arduino-ide)
-  - [Functionalities](#functionalities)
-  - [Sketches](#sketches)
+
+- [Dependencies:](#dependencies)
+- [Installation (Arduino IDE)](#installation-arduino-ide)
+- [Functionalities](#functionalities)
+- [Sketches](#sketches)
     - [Adding the broker TLS certificates](#adding-the-broker-tls-certificates)
     - [Writing a sensor sketch](#writing-a-sensor-sketch)
     - [Writing an actuator sketch](#writing-an-actuator-sketch)
