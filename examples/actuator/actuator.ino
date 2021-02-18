@@ -1,12 +1,5 @@
 #include <MoodyEsp8266.h>
 
-const char caCert[] PROGMEM = R"EOF(
------BEGIN CERTIFICATE-----
-your certificate here
------END CERTIFICATE-----
-)EOF";
-
-const uint8_t brokerFingerprint[] = {};
 
 MoodyActuator actuator;
 
@@ -24,7 +17,6 @@ void actuate(uint8_t action) {
 }
 
 void setup() {
-    actuator.setCert(caCert, brokerFingerprint);
     MoodyActuator::setActuate(actuate);
     actuator.begin();
 }

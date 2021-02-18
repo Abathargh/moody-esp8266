@@ -60,22 +60,8 @@ After connecting to the network, the node will start its normal activity: a sens
 
 ### Adding the broker TLS certificates
 
-Since version 0.2 MoodyEsp8266, and the Moody project in general, requires TLS for its MQTT communications. In order to set it up on the ESP8266, you need to pick the ca.crt generated following the instructions included in the main [Moody repository](https://github.com/Abathargh/moody-go#configuration-and-certificates-setup).
-You also need the server fingerprint, obtainable by opening a terminal in the moody directory and running:
+Since version 0.2 MoodyEsp8266, and the Moody project in general, requires TLS for its MQTT communications. In order to set it up on the ESP8266, you need to pick the ca.crt generated following the instructions included in the main [Moody repository](https://github.com/Abathargh/moody-go#configuration-and-certificates-setup) and upload it via the web interface.
 
-```bash
-openssl x509 -in  broker/server.crt -sha1 -noout -fingerprint
-```
-
-This fingerprint must be passed as an array of **uint8_t**, in hexadecimal notation, like this:
-
-```c
-openssl output example: 
-AA:BC:0A:A9:33:23:0F:4E:0A:F6:D6:7E:C0:DA:BE:4B:F1:A4:B3:94 
-
-brokerFingerprint:
-uint8_t brokerFingerprint[] = {0xAA, 0xBC, 0x0A, 0xA9, 0x33, 0x23, 0x0F, 0x4E, 0x0A, 0xF6, 0xD6, 0x7E, 0xC0, 0xDA, 0xBE, 0x4B, 0xF1, 0xA4, 0xB3, 0x94}
-```
 
 ### Writing a sensor sketch
 
@@ -86,14 +72,6 @@ within a MoodySensor; first, you create a function that acquires data from the s
 
 ```c++
 #include <MoodyEsp8266.h>
-
-const char caCert[] PROGMEM = R"EOF(
------BEGIN CERTIFICATE-----
-your certificate here
------END CERTIFICATE-----
-)EOF";
-
-const uint8_t brokerFingerprint[] = {};
 
 uint8_t c = 0;
 MoodySensor sensor;
@@ -106,7 +84,6 @@ String countService() {
 void setup() {
     // Pass the function to the registerService function alongside 
     // the topic related to the service 
-    sensor.setCert(caCert, brokerFingerprint);
     sensor.register("count", countService);
     ...
 }
@@ -138,14 +115,6 @@ The following is an example of how to setup the actuator with a simple function 
 ```c++
 #include <MoodyEsp8266.h>
 
-const char caCert[] PROGMEM = R"EOF(
------BEGIN CERTIFICATE-----
-your certificate here
------END CERTIFICATE-----
-)EOF";
-
-const uint8_t brokerFingerprint[] = {};
-
 void actuate(uint8_t action) {
     switch(action) {
         case 0:
@@ -160,7 +129,6 @@ void actuate(uint8_t action) {
 }
 
 void setup() {
-    sensor.setCert(caCert, brokerFingerprint);
     MoodyActuator::setActuate(actuate);
     ...
 }

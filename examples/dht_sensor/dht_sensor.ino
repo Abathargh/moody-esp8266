@@ -5,7 +5,6 @@
 */
 #include <MoodyEsp8266.h>
 #include <DHT.h>
-#include "certs.h"
 
 #define DATA_PIN 0
 #define DHT_TYPE DHT11
@@ -25,10 +24,8 @@ String humidityService() {
     return String(hum);
 }
 
-
 void setup() {
     dht.begin();
-    sensor.setCert(caCert, brokerFingerprint);
     sensor.registerService("temperature", temperatureService);
     sensor.registerService("humidity", humidityService);
     sensor.begin();
