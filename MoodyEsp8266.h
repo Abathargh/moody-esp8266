@@ -6,25 +6,35 @@
 #define ACTUATION_MODE 0
 #define WEB_SERVER_MODE 1
 
-#define MAX_ACTION_SIZE 5
-#define MAX_ACTION_NUM 10
 
 #define CONN_OK 1
 #define CONN_NOT_OK 0
 
+// conninfo defines
+#define OK_LENGTH 1
 #define SSID_LENGTH 32
 #define KEY_LENGTH 64
 #define BROKER_ADDR_LENGTH 16
+#define CERT_LENGTH 1300
+#define CONN_INFO_LENGTH (OK_LENGTH+SSID_LENGTH+KEY_LENGTH+BROKER_ADDR_LENGTH+CERT_LENGTH)
+
+// mappings defines
+#define MAPPING_SIZE 1
+#define MAX_ACTION_SIZE 5
+#define MAX_ACTION_NUM 10
+#define MAPPING_LENGTH (MAPPING_SIZE+MAX_ACTION_SIZE+MAX_ACTION_NUM)
+
 #define MAX_ATTEMPTS 5
 
 #define AP_SSID "MoodyNode"
 #define WEB_SERVER_PORT 80
 #define MQTT_PORT 8883
 
+// EEPROM defines
 #define CONNINFO_ADDR 0
-#define MAPPINGS_ADDR 120
-#define EEPROM_SIZE_SENSOR 104
-#define EEPROM_SIZE_ACTUATOR 300
+#define MAPPINGS_ADDR CONN_INFO_LENGTH
+#define EEPROM_SIZE_SENSOR CONN_INFO_LENGTH
+#define EEPROM_SIZE_ACTUATOR (CONN_INFO_LENGTH+MAPPING_LENGTH)
 
 #define MSG_BUFFER_SIZE (50)
 
@@ -63,6 +73,7 @@ struct connection_info
     char SSID[SSID_LENGTH];
     char KEY[KEY_LENGTH];
     char BROKER_ADDR[BROKER_ADDR_LENGTH];
+    char CERT[CERT_LENGTH]
 };
 
 struct mappings
@@ -102,7 +113,6 @@ protected:
 
 public:
     static connection_info conninfo;
-    void setCert(const char *caCert, const uint8_t *brokerFingerprint);
     virtual void begin();
     virtual void loop();
 };

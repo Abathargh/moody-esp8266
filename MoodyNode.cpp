@@ -23,25 +23,6 @@ const char login_html[] PROGMEM = R"===(
                 border: 1px solid #af7bc7;
             }
         </style>
-        <script>
-            function save_credentials() {
-                let xhttp = new XMLHttpRequest();
-                xhttp.onreadystatechange = function() {
-                    if(this.readyState === 4 && this.status === 200){
-                        alert("The esp will now reset and try to connect to the specified network.");
-                    } else if(this.status === 422) {
-                        alert("Insert both an ssid and a key");
-                    }
-                };
-                xhttp.open("POST", "/connect", true);
-                xhttp.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
-                let ssid = document.getElementById("ssid").value;
-                let key = document.getElementById("key").value;
-                let broker = document.getElementById("broker").value;
-                let params = "ssid="+ssid+"&key="+key+"&broker="+broker;
-                xhttp.send(params);
-            }
-        </script>
     </head>
     <body>
         <div class="login">
@@ -60,11 +41,52 @@ const char login_html[] PROGMEM = R"===(
                     <td><input type="text" name="broker" id="broker"/></td>
                 </tr>
                 <tr>
+                    <td>GW cert:</td>
+                    <td><input type="file" id="cert" value="Gw cert" accept=".crt"></td>
+                </tr>
+                <tr>
                     <td><input type="submit" value="Connect" onclick="save_credentials()" /></td>
                 </tr>
             </table>
         </div>
     </body>
+    <script>
+        function save_credentials() {
+            let xhttp = new XMLHttpRequest();
+            xhttp.onreadystatechange = function() {
+                if(this.readyState === 4 && this.status === 200){
+                    alert("The esp will now reset and try to connect to the specified network.");
+                } else if(this.status === 422) {
+                    alert("Insert both an ssid and a key");
+                }
+            };
+            xhttp.open("POST", "/connect", true);
+            xhttp.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
+            let ssid = document.getElementById("ssid").value;
+            let key = document.getElementById("key").value;
+            let broker = document.getElementById("broker").value;
+            if(!ssid || !key || !broker) {
+                alert("A field is missing!"+ssid+key+broker+cert);
+            }
+            var file = document.getElementById("cert").files[0];
+            if(file) {
+                var reader = new FileReader();
+                reader.readAsText(file, "UTF-8");
+                reader.onload = function (evt) {
+                    let cert = evt.target.result;
+                    console.log(cert);
+                    console.log(file);
+                    let params = "ssid="+ssid+"&key="+key+"&broker="+broker+"&cert="+cert;
+                    console.log(params);
+                    xhttp.send(params);
+                }
+                reader.onerror = function (evt) {
+                    alert(evt.target.error);
+                }
+            }
+        }
+
+    </script>
 </html>
 )===";
 
@@ -78,18 +100,21 @@ bool validPostConnect(AsyncWebServerRequest *request)
     bool p1 = request->hasParam("ssid", true);
     bool p2 = request->hasParam("key", true);
     bool p3 = request->hasParam("broker", true);
-    if (!p1 || !p2 || !p3)
+    bool p4 = request->hasParam("cert", true);
+    if (!p1 || !p2 || !p3 || !p4)
     {
         return false;
     }
     String ssid = request->getParam("ssid", true)->value();
     String key = request->getParam("key", true)->value();
     String broker = request->getParam("broker", true)->value();
+    String cert = request->getParam("cert", true)->value();
     unsigned int l1 = ssid.length();
     unsigned int l2 = key.length();
     unsigned int l3 = broker.length();
+    unsigned int l4 = cert.length();
 
-    return l1 > 0 && l1 <= SSID_LENGTH && l2 > 0 && l2 <= KEY_LENGTH && l3 > 0 && l3 <= BROKER_ADDR_LENGTH;
+    return l1 > 0 && l1 <= SSID_LENGTH && l2 > 0 && l2 <= KEY_LENGTH && l3 > 0 && l3 <= BROKER_ADDR_LENGTH && l4 == CERT_LENGTH;
 }
 
 AsyncWebServer createAPServer(int port)
@@ -114,10 +139,13 @@ AsyncWebServer createAPServer(int port)
         String ssid = request->getParam("ssid", true)->value();
         String key = request->getParam("key", true)->value();
         String broker = request->getParam("broker", true)->value();
+        String cert = request->getParam("cert", true)->value();
+
         strcpy(MoodyNode::conninfo.SSID, ssid.c_str());
         strcpy(MoodyNode::conninfo.KEY, key.c_str());
         strcpy(MoodyNode::conninfo.BROKER_ADDR, broker.c_str());
-
+        strcpy(MoodyNode::conninfo.CERT, cert.c_str());
+        
         EEPROM.put(CONNINFO_ADDR, MoodyNode::conninfo);
         EEPROM.commit();
 #if defined(ESP8266)
@@ -133,17 +161,6 @@ WiFiClientSecure MoodyNode::wifiClient = WiFiClientSecure();
 PubSubClient MoodyNode::client = PubSubClient(wifiClient);
 AsyncWebServer MoodyNode::apServer = createAPServer(WEB_SERVER_PORT);
 
-void MoodyNode::setCert(const char *caCert, const uint8_t *brokerFingerprint)
-{
-#if defined(ESP8266)
-    caCertX509 = X509List(caCert);
-    wifiClient.setTrustAnchors(&caCertX509);
-    wifiClient.allowSelfSignedCerts();
-    wifiClient.setFingerprint(brokerFingerprint);
-#else
-    wifiClient.setCACert(caCert);
-#endif
-}
 
 void MoodyNode::activateAPMode()
 {
@@ -195,8 +212,18 @@ bool MoodyNode::connectToBroker()
 
 void MoodyNode::begin()
 {
+    // TODO differentiate sens/act EEPROM init
     EEPROM.begin(EEPROM_SIZE_ACTUATOR);
     EEPROM.get(CONNINFO_ADDR, conninfo);
+
+#if defined(ESP8266)
+    caCertX509 = X509List(conninfo.CERT);
+    wifiClient.setTrustAnchors(&caCertX509);
+    wifiClient.allowSelfSignedCerts();
+    //wifiClient.setFingerprint(brokerFingerprint);
+#else
+    wifiClient.setCACert(caCert);
+#endif
 
 #if defined(DEBUG_ESP_PORT)
     Serial.begin(115200);
