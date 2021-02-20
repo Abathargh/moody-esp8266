@@ -15,8 +15,9 @@
 #define SSID_LENGTH 32
 #define KEY_LENGTH 64
 #define BROKER_ADDR_LENGTH 16
+#define FINGERPRINT_LENGTH 60
 #define CERT_LENGTH 1300
-#define CONN_INFO_LENGTH (OK_LENGTH+SSID_LENGTH+KEY_LENGTH+BROKER_ADDR_LENGTH+CERT_LENGTH)
+#define CONN_INFO_LENGTH (OK_LENGTH+SSID_LENGTH+KEY_LENGTH+BROKER_ADDR_LENGTH+FINGERPRINT_LENGTH+CERT_LENGTH)
 
 // mappings defines
 #define MAPPING_SIZE 1
@@ -65,6 +66,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 
+
 // Stores and retrieves connection information in EEPROM
 // (emulated via flash memory)
 struct connection_info
@@ -73,7 +75,8 @@ struct connection_info
     char SSID[SSID_LENGTH];
     char KEY[KEY_LENGTH];
     char BROKER_ADDR[BROKER_ADDR_LENGTH];
-    char CERT[CERT_LENGTH]
+    char FINGERPRINT[FINGERPRINT_LENGTH];
+    char CERT[CERT_LENGTH];
 };
 
 struct mappings

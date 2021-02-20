@@ -11,16 +11,30 @@ const char login_html[] PROGMEM = R"===(
         <style>
             .login {
                 margin: auto;
-                width: 330px;
+                width: 450px;
                 height: auto;
                 font-family: Courier New;
                 border-radius: 25px;
                 background-color: #ebeeff;
                 text-align: left;
                 padding: 1%;
+                padding-right: 0%;
                 text-decoration: none;
                 font-size: 15px;
                 border: 1px solid #af7bc7;
+            }
+
+            .login h3 {
+                text-align: center;
+            }
+
+            .login table {
+                margin: auto;
+                padding: 0;
+            }
+
+            .login td {
+                font-size: 15px;
             }
         </style>
     </head>
@@ -41,6 +55,10 @@ const char login_html[] PROGMEM = R"===(
                     <td><input type="text" name="broker" id="broker"/></td>
                 </tr>
                 <tr>
+                    <td>Broker Fingerprint:</td>
+                    <td><input type="text" name="fingerprint" id="fingerprint"/></td>
+                </tr>
+                <tr>
                     <td>GW cert:</td>
                     <td><input type="file" id="cert" value="Gw cert" accept=".crt"></td>
                 </tr>
@@ -57,7 +75,7 @@ const char login_html[] PROGMEM = R"===(
                 if(this.readyState === 4 && this.status === 200){
                     alert("The esp will now reset and try to connect to the specified network.");
                 } else if(this.status === 422) {
-                    alert("Insert both an ssid and a key");
+                    alert("Invalid or missing parameter!");
                 }
             };
             xhttp.open("POST", "/connect", true);
@@ -65,8 +83,9 @@ const char login_html[] PROGMEM = R"===(
             let ssid = document.getElementById("ssid").value;
             let key = document.getElementById("key").value;
             let broker = document.getElementById("broker").value;
-            if(!ssid || !key || !broker) {
-                alert("A field is missing!"+ssid+key+broker+cert);
+            let fingerprint = document.getElementById("fingerprint").value;
+            if(!ssid || !key || !broker || !fingerprint) {
+                alert("A field is missing!");
             }
             var file = document.getElementById("cert").files[0];
             if(file) {
@@ -76,8 +95,7 @@ const char login_html[] PROGMEM = R"===(
                     let cert = evt.target.result;
                     console.log(cert);
                     console.log(file);
-                    let params = "ssid="+ssid+"&key="+key+"&broker="+broker+"&cert="+cert;
-                    console.log(params);
+                    let params = "ssid="+ssid+"&key="+key+"&broker="+broker+"&fingerprint="+fingerprint+"&cert="+cert;
                     xhttp.send(params);
                 }
                 reader.onerror = function (evt) {
@@ -100,21 +118,25 @@ bool validPostConnect(AsyncWebServerRequest *request)
     bool p1 = request->hasParam("ssid", true);
     bool p2 = request->hasParam("key", true);
     bool p3 = request->hasParam("broker", true);
-    bool p4 = request->hasParam("cert", true);
-    if (!p1 || !p2 || !p3 || !p4)
+    bool p4 = request->hasParam("fingerprint", true);
+    bool p5 = request->hasParam("cert", true);
+    if (!p1 || !p2 || !p3 || !p4 || !p5)
     {
         return false;
     }
     String ssid = request->getParam("ssid", true)->value();
     String key = request->getParam("key", true)->value();
     String broker = request->getParam("broker", true)->value();
+    String fingerprint = request->getParam("fingerprint", true)->value();
     String cert = request->getParam("cert", true)->value();
     unsigned int l1 = ssid.length();
     unsigned int l2 = key.length();
     unsigned int l3 = broker.length();
-    unsigned int l4 = cert.length();
+    unsigned int l4 = fingerprint.length();
+    unsigned int l5 = cert.length();
 
-    return l1 > 0 && l1 <= SSID_LENGTH && l2 > 0 && l2 <= KEY_LENGTH && l3 > 0 && l3 <= BROKER_ADDR_LENGTH && l4 == CERT_LENGTH;
+    return l1 > 0 && l1 <= SSID_LENGTH && l2 > 0 && l2 <= KEY_LENGTH && l3 > 0 && 
+        l3 <= BROKER_ADDR_LENGTH && l4 > 0 && l4 <= FINGERPRINT_LENGTH && l5 > 0 && l5 <= CERT_LENGTH;
 }
 
 AsyncWebServer createAPServer(int port)
@@ -139,11 +161,13 @@ AsyncWebServer createAPServer(int port)
         String ssid = request->getParam("ssid", true)->value();
         String key = request->getParam("key", true)->value();
         String broker = request->getParam("broker", true)->value();
+        String fingerprint = request->getParam("fingerprint", true)->value();
         String cert = request->getParam("cert", true)->value();
 
         strcpy(MoodyNode::conninfo.SSID, ssid.c_str());
         strcpy(MoodyNode::conninfo.KEY, key.c_str());
         strcpy(MoodyNode::conninfo.BROKER_ADDR, broker.c_str());
+        strcpy(MoodyNode::conninfo.FINGERPRINT, fingerprint.c_str());
         strcpy(MoodyNode::conninfo.CERT, cert.c_str());
         
         EEPROM.put(CONNINFO_ADDR, MoodyNode::conninfo);
@@ -220,15 +244,10 @@ void MoodyNode::begin()
     caCertX509 = X509List(conninfo.CERT);
     wifiClient.setTrustAnchors(&caCertX509);
     wifiClient.allowSelfSignedCerts();
-    //wifiClient.setFingerprint(brokerFingerprint);
+    wifiClient.setFingerprint(conninfo.FINGERPRINT);
 #else
     wifiClient.setCACert(caCert);
 #endif
-
-#if defined(DEBUG_ESP_PORT)
-    Serial.begin(115200);
-#endif
-    DEBUG_MSG("SSID:\t%s\nKEY:\t%s\nBroker:\t%s\n", conninfo.SSID, conninfo.KEY, conninfo.BROKER_ADDR);
 
     bool okWifi = connectToWifi();
     if (!okWifi)
