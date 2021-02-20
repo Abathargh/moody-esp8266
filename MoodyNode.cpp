@@ -354,7 +354,7 @@ void MoodyNode::begin()
     wifiClient.allowSelfSignedCerts();
     wifiClient.setFingerprint(conninfo.FINGERPRINT);
 #else
-    wifiClient.setCACert(caCert);
+    wifiClient.setCACert(conninfo.CERT);
 #endif
 #endif
     bool okWifi = connectToWifi();
