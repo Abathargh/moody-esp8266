@@ -15,8 +15,15 @@
 #define SSID_LENGTH 32
 #define KEY_LENGTH 64
 #define BROKER_ADDR_LENGTH 16
+
+#ifndef HTTP_ONLY
 #define FINGERPRINT_LENGTH 60
 #define CERT_LENGTH 1300
+#else
+#define FINGERPRINT_LENGTH 0
+#define CERT_LENGTH 0
+#endif
+
 #define CONN_INFO_LENGTH (OK_LENGTH+SSID_LENGTH+KEY_LENGTH+BROKER_ADDR_LENGTH+FINGERPRINT_LENGTH+CERT_LENGTH)
 
 // mappings defines
@@ -75,8 +82,10 @@ struct connection_info
     char SSID[SSID_LENGTH];
     char KEY[KEY_LENGTH];
     char BROKER_ADDR[BROKER_ADDR_LENGTH];
+#ifndef HTTP_ONLY
     char FINGERPRINT[FINGERPRINT_LENGTH];
     char CERT[CERT_LENGTH];
+#endif
 };
 
 struct mappings
@@ -97,12 +106,17 @@ class MoodyNode
 private:
     static AsyncWebServer apServer;
 #if defined(ESP8266)
+#ifndef HTTP_ONLY
     X509List caCertX509;
+#endif
 #endif
 protected:
     bool apMode;
+#ifndef HTTP_ONLY
     static WiFiClientSecure wifiClient;
-
+#else
+    static WiFiClient wifiClient;
+#endif
     static PubSubClient client;
     char msg[MSG_BUFFER_SIZE];
 

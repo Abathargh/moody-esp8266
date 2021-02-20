@@ -2,6 +2,8 @@
 
 connection_info MoodyNode::conninfo;
 
+
+#ifndef HTTP_ONLY
 const char login_html[] PROGMEM = R"===(
 <html>
     <head>
@@ -107,6 +109,92 @@ const char login_html[] PROGMEM = R"===(
     </script>
 </html>
 )===";
+#else
+const char login_html[] PROGMEM = R"===(
+<html>
+    <head>
+        <title>
+            Moody Node - Connect to WiFi
+        </title>
+        <style>
+            .login {
+                margin: auto;
+                width: 450px;
+                height: auto;
+                font-family: Courier New;
+                border-radius: 25px;
+                background-color: #ebeeff;
+                text-align: left;
+                padding: 1%;
+                padding-right: 0%;
+                padding-left: 0%;
+                text-decoration: none;
+                font-size: 15px;
+                border: 1px solid #af7bc7;
+            }
+
+            .login h3 {
+                text-align: center;
+            }
+
+            .login table {
+                margin: auto;
+                padding: 0;
+            }
+
+            .login td {
+                font-size: 15px;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="login">
+            <h3>Connect to your home WiFi</h3>
+            <table>
+                <tr>
+                    <td>SSID:</td>
+                    <td><input type="text" name="ssid" id="ssid" /></td>
+                </tr>
+                <tr>
+                    <td>KEY:</td>
+                    <td><input type="password" name="key" id="key"/></td>
+                </tr>
+                <tr>
+                    <td>Broker Address:</td>
+                    <td><input type="text" name="broker" id="broker"/></td>
+                </tr>
+                <tr>
+                    <td><input type="submit" value="Connect" onclick="save_credentials()" /></td>
+                </tr>
+            </table>
+        </div>
+    </body>
+    <script>
+        function save_credentials() {
+            let xhttp = new XMLHttpRequest();
+            xhttp.onreadystatechange = function() {
+                if(this.readyState === 4 && this.status === 200){
+                    alert("The esp will now reset and try to connect to the specified network.");
+                } else if(this.status === 422) {
+                    alert("Invalid or missing parameter!");
+                }
+            };
+            xhttp.open("POST", "/connect", true);
+            xhttp.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
+            let ssid = document.getElementById("ssid").value;
+            let key = document.getElementById("key").value;
+            let broker = document.getElementById("broker").value;
+            if(!ssid || !key || !broker) {
+                alert("A field is missing!");
+            }
+            let params = "ssid="+ssid+"&key="+key+"&broker="+broker+"&fingerprint="+fingerprint+"&cert="+cert;
+            xhttp.send(params);
+        }
+
+    </script>
+</html>
+)===";
+#endif
 
 const long APRand = random(100, 500);
 
@@ -118,25 +206,37 @@ bool validPostConnect(AsyncWebServerRequest *request)
     bool p1 = request->hasParam("ssid", true);
     bool p2 = request->hasParam("key", true);
     bool p3 = request->hasParam("broker", true);
+#ifndef HTTP__ONLY
     bool p4 = request->hasParam("fingerprint", true);
     bool p5 = request->hasParam("cert", true);
-    if (!p1 || !p2 || !p3 || !p4 || !p5)
+    bool isInvalid = !p1 || !p2 || !p3 || !p4 || !p5;
+#else
+    bool isInvalid = !p1 || !p2 || | p3;
+#endif
+    if (isInvalid)
     {
         return false;
     }
     String ssid = request->getParam("ssid", true)->value();
     String key = request->getParam("key", true)->value();
     String broker = request->getParam("broker", true)->value();
+#ifndef HTTP__ONLY
     String fingerprint = request->getParam("fingerprint", true)->value();
     String cert = request->getParam("cert", true)->value();
+    unsigned int l4 = fingerprint.length();
+    unsigned int l5 = cert.length();
+#endif
     unsigned int l1 = ssid.length();
     unsigned int l2 = key.length();
     unsigned int l3 = broker.length();
-    unsigned int l4 = fingerprint.length();
-    unsigned int l5 = cert.length();
 
+#ifndef HTTP_ONLY
     return l1 > 0 && l1 <= SSID_LENGTH && l2 > 0 && l2 <= KEY_LENGTH && l3 > 0 && 
         l3 <= BROKER_ADDR_LENGTH && l4 > 0 && l4 <= FINGERPRINT_LENGTH && l5 > 0 && l5 <= CERT_LENGTH;
+#else
+    l1 > 0 && l1 <= SSID_LENGTH && l2 > 0 && l2 <= KEY_LENGTH && l3 > 0 && 
+        l3 <= BROKER_ADDR_LENGTH;
+#endif
 }
 
 AsyncWebServer createAPServer(int port)
@@ -161,14 +261,16 @@ AsyncWebServer createAPServer(int port)
         String ssid = request->getParam("ssid", true)->value();
         String key = request->getParam("key", true)->value();
         String broker = request->getParam("broker", true)->value();
+#ifndef HTTP_ONLY
         String fingerprint = request->getParam("fingerprint", true)->value();
         String cert = request->getParam("cert", true)->value();
-
+        strcpy(MoodyNode::conninfo.FINGERPRINT, fingerprint.c_str());
+        strcpy(MoodyNode::conninfo.CERT, cert.c_str());
+#endif
         strcpy(MoodyNode::conninfo.SSID, ssid.c_str());
         strcpy(MoodyNode::conninfo.KEY, key.c_str());
         strcpy(MoodyNode::conninfo.BROKER_ADDR, broker.c_str());
-        strcpy(MoodyNode::conninfo.FINGERPRINT, fingerprint.c_str());
-        strcpy(MoodyNode::conninfo.CERT, cert.c_str());
+
         
         EEPROM.put(CONNINFO_ADDR, MoodyNode::conninfo);
         EEPROM.commit();
@@ -181,7 +283,12 @@ AsyncWebServer createAPServer(int port)
     return server;
 }
 
-WiFiClientSecure MoodyNode::wifiClient = WiFiClientSecure();
+#ifndef HTTP_ONLY
+WiFiClientSecure 
+#else
+WiFiClient
+#endif
+MoodyNode::wifiClient = WiFiClientSecure();
 PubSubClient MoodyNode::client = PubSubClient(wifiClient);
 AsyncWebServer MoodyNode::apServer = createAPServer(WEB_SERVER_PORT);
 
@@ -240,6 +347,7 @@ void MoodyNode::begin()
     EEPROM.begin(EEPROM_SIZE_ACTUATOR);
     EEPROM.get(CONNINFO_ADDR, conninfo);
 
+#ifndef HTTP_ONLY
 #if defined(ESP8266)
     caCertX509 = X509List(conninfo.CERT);
     wifiClient.setTrustAnchors(&caCertX509);
@@ -248,7 +356,7 @@ void MoodyNode::begin()
 #else
     wifiClient.setCACert(caCert);
 #endif
-
+#endif
     bool okWifi = connectToWifi();
     if (!okWifi)
     {
