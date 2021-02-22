@@ -135,10 +135,15 @@ void WifiWrapperNoTLS::createAPServer(AsyncWebServer &server)
         String key = request->getParam("key", true)->value();
         String broker = request->getParam("broker", true)->value();
 
+#if defined(ESP8266)
         strncpy(info.SSID, ssid.c_str(), SSID_LENGTH);
+#else
+        // ESP32 WiFi lib requires null terminator
+        snprintf(info.SSID, SSID_LENGTH, "%s", ssid.c_str());
+#endif
         strncpy(info.KEY, key.c_str(), KEY_LENGTH);
         strncpy(info.BROKER_ADDR, broker.c_str(), BROKER_ADDR_LENGTH);
-        
+
         EepromManager::writeConnectionInfo(&info);
 #if defined(ESP8266)
         ESP.reset();
