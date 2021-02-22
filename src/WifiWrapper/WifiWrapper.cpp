@@ -9,7 +9,7 @@ bool WifiWrapper::getApMode() {
 void WifiWrapper::activateAPMode() {
     const long APRand = random(100, 500);
     char randSSID[13];
-    sprintf(randSSID, "%s%d\0", AP_SSID, APRand);
+    snprintf(randSSID, sizeof(randSSID), "%s%d", AP_SSID, APRand);
     // Init ESP WiFi as AP
     WiFi.mode(WIFI_AP);
     WiFi.softAP(randSSID);

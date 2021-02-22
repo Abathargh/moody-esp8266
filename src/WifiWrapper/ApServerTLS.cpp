@@ -163,11 +163,12 @@ void WifiWrapperTLS::createAPServer(AsyncWebServer &server)
         String fingerprint = request->getParam("fingerprint", true)->value();
         String cert = request->getParam("cert", true)->value();
 
-        strcpy(info.SSID, ssid.c_str());
-        strcpy(info.KEY, key.c_str());
-        strcpy(info.BROKER_ADDR, broker.c_str());
-        strcpy(info.FINGERPRINT, fingerprint.c_str());
-        strcpy(info.CERT, cert.c_str());
+
+        strncpy(info.SSID, ssid.c_str(), SSID_LENGTH);
+        strncpy(info.KEY, key.c_str(), KEY_LENGTH);
+        strncpy(info.BROKER_ADDR, broker.c_str(), BROKER_ADDR_LENGTH);
+        strncpy(info.FINGERPRINT, fingerprint.c_str(), FINGERPRINT_LENGTH);
+        strncpy(info.CERT, cert.c_str(), CERT_LENGTH);
 
         EepromManager::writeConnectionInfo(&info);
 #if defined(ESP8266)
