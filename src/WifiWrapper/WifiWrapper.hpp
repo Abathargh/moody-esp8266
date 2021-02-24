@@ -57,6 +57,7 @@ class WifiWrapper {
         virtual WifiWrapper& operator=(const WifiWrapper&) = 0;
 };
 
+#if !defined(HTTP_ONLY)
 class WifiWrapperTLS : public WifiWrapper {
     private:
 #if defined(ESP8266)
@@ -71,7 +72,7 @@ class WifiWrapperTLS : public WifiWrapper {
         WifiWrapper& operator=(const WifiWrapper&) override { return *this; };
 
 };
-
+#else
 class WifiWrapperNoTLS : public WifiWrapper {
     private:
         WiFiClient wifiClient;
@@ -82,5 +83,6 @@ class WifiWrapperNoTLS : public WifiWrapper {
         void createAPServer(AsyncWebServer&) override;
         WifiWrapper& operator=(const WifiWrapper&) override { return *this; };
 };
+#endif
 
 #endif

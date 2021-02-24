@@ -1,6 +1,12 @@
 #ifndef EEPROM_MANAGER_H_
 #define EEPROM_MANAGER_H_
 
+#if defined(ESP8266)
+#include <EEPROM.h>
+#else
+#include <Preferences.h>
+#endif
+
 #include <stdint.h>
 
 // conninfo defines
@@ -56,8 +62,10 @@ class EepromManager {
         enum class Mode { Sensor, Actuator };
         static void start(Mode);
         static void writeConnectionInfo(ConnectionInfo*);
+        static void saveConnectionInfo(ConnectionInfo*);
         static ConnectionInfo readConnectionInfo();
         static ConnectionInfo& getConnectionInfoRef();
+
         static void writeMappings(Mappings*);
         static void saveMappings(Mappings*);
         static void flashMappings();
@@ -66,8 +74,16 @@ class EepromManager {
         static bool started;
         static bool conninfoStarted;
         static bool mappingsStarted;
-        static ConnectionInfo conninfo;
         static Mappings map;
+        static ConnectionInfo conninfo;
+
+        static void readConnFromEeprom();
+        static void readMappingsFromEeprom();
+        static void writeConnToEeprom();
+        static void writeMappingsToEeprom();
+#if defined(ESP32)
+        static Preferences pref;
+#endif
         EepromManager(){};
         ~EepromManager(){};
 };

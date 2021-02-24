@@ -164,14 +164,8 @@ void WifiWrapperTLS::createAPServer(AsyncWebServer &server)
         String cert = request->getParam("cert", true)->value();
 
 
-#if defined(ESP8266)
         strncpy(info.SSID, ssid.c_str(), SSID_LENGTH);
         strncpy(info.KEY, key.c_str(), KEY_LENGTH);
-#else
-        // ESP32 WiFi lib requires null terminator
-        snprintf(info.SSID, SSID_LENGTH, "%s", ssid.c_str());
-        snprintf(info.KEY, KEY_LENGTH, "%s", key.c_str());
-#endif
         strncpy(info.BROKER_ADDR, broker.c_str(), BROKER_ADDR_LENGTH);
         strncpy(info.FINGERPRINT, fingerprint.c_str(), FINGERPRINT_LENGTH);
         strncpy(info.CERT, cert.c_str(), CERT_LENGTH);
